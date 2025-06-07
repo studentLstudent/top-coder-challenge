@@ -1,0 +1,42 @@
+hypotheses:
+  per_diem:
+    status: testing
+    notes: "Appears to be around $85-100 per day, but varies"
+    
+  mileage_rates:
+    status: confirmed
+    notes: "Tiered system with decreasing rates as miles increase"
+    breakpoints:
+      - "0-100 miles: Higher rate"
+      - "100-300 miles: Medium rate" 
+      - "300+ miles: Lower rate"
+      
+  receipt_handling:
+    status: confirmed
+    notes: "Non-linear with penalty for small amounts"
+    observations:
+      - "< $100: Heavy penalty (negative contribution)"
+      - "$100-500: Partial penalty"
+      - "$500-700: Break-even zone"
+      - "> $700: Partial reimbursement (~30-45%)"
+      
+  quirks:
+    13_day_bonus:
+      status: testing
+      notes: "13-day trips seem to have positive per diem"
+      
+    rounding:
+      status: testing
+      notes: "Output decimals appear random, not systematic"
+      
+  formula_structure:
+    status: testing
+    hypothesis: "output = per_diem * days + mileage_component + receipt_component"
+    
+red_herrings_to_ignore:
+  - "Day of week submission"
+  - "Lunar cycles"
+  - "Department differences"
+  - "User history"
+  - "Quarterly variations"
+  - "Time of month"

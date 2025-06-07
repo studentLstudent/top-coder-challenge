@@ -1,0 +1,12 @@
+{
+  "per_diem": 47.659657396495476,
+  "mileage": 0.4379823913984555,
+  "receipt_threshold": 828.1,
+  "low_receipt_coef": 0.5070060017251543,
+  "low_receipt_intercept": 33.975511777629805,
+  "high_receipt_coef": 0.07606448763351563,
+  "high_receipt_intercept": 743.1196226133405,
+  "receipt_multiplier": 1.026792033048981,
+  "intercept": 90.01973815253385,
+  "mae": 113.86064241259123
+}

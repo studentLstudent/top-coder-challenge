@@ -1,0 +1,89 @@
+### Current state ‑ what you already have
+
+| Area                             | What’s in place                                                                                                                                 | My assessment                                                                            |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Process, artefacts**           | A well‑structured research log, repeatable `eval.sh`, early EDA and decision‑tree notebooks, shell/Python playground scripts.                   | Excellent foundation. You can iterate fast, quantify progress and roll back mistakes.    |
+| **Hypothesis space**             | Clear working assumptions: tiered per‑diem, three‑step mileage curve, non‑linear receipt component, plus “quirk hooks” (mod 13, rounding bugs). | Sensible; mirrors the interview hints and early residual plots.                          |
+| **Baseline formula in `run.sh`** | `per‑diem = 85·days`, mileage 0.58/0.50/0.45, four piecewise receipt slopes.                                                                    | Good first fit, but still heuristic. It will **not** reach 0 MAE without further tuning. |
+| **Exploratory code**             | Decision‑tree break‑point finder, coefficient sweeps, receipt‑cap experiments, duplicate‑input detector.                                        | Very useful; keep these notebooks—they are your “microscopes”.                           |
+
+---
+
+### What “an analytical solution that drives the error to 0” usually means in this contest
+
+1. **Deterministic piecewise‑affine formula**
+   *Same trip, same output every time.* No stochastic term; anomalies are encoded as rule branches or literal lookup values.
+
+2. **Integer math with late rounding**
+   Legacy COBOL/Fortran often multiplied everything by 100 (cents), did integer division, then rounded only once. Re‑implementing that exactly can eliminate < \$0.01 mismatches.
+
+3. **Small, finite set of breakpoints**
+   You can enumerate all unique thresholds (miles, days, receipt buckets) from the 1 000 public cases, solve for the linear coefficients in each region, and still generalise because the hidden system uses those same constants.
+
+4. **At most \~20 “quirk” overrides**
+   Truly inexplicable outputs (leap‑year patch, 5‑day bonus, receipt‑cents bug) are hard‑coded exceptions. They are rare enough that a hash‑table overlay is acceptable and still counts as “analytical”.
+
+---
+
+### Gap analysis & next moves
+
+| Task                                                      | Why it matters                                                                                           | Concrete next step                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1  Lock the rounding model**                            | A wrong rounding order alone can give you ±\$0.04 drift on every case.                                   | Pick any candidate formula, run it **twice**: once with floats, once with `bc` integer‑scaled cents. If the error histogram shifts by a constant ±\$0.01/0.02 you’ve found a rounding mis‑ordering.                                                                                                                                    |
+| **2  Brute‑solve for coefficients region‑by‑region**      | You already know (from the 3‑level CART) approximate breakpoints. Now you need *exact* penny‑level fits. | For each region R:<br>  \* build matrix **A<sub>R</sub>** of $days, miles, receipts, 1$<br>  \* solve `A_R · θ_R = y_R` with integer least‑squares *and round θ to “sane” finance units* (e.g., 85/86/87 per‑diem; 0.55, 0.57, 0.60 per‑mile).<br>  \* test on the whole public set; reiterate until all but the outliers hit exactly. |
+| **3  Audit every residual > \$0.01**                      | Any non‑zero residual either signals (a) a missing rule or (b) a numeric precision issue.                | Dump the 20 worst cases, sorted by absolute error. For each, print the running subtotal after every term so you can spot which component went off.                                                                                                                                                                                     |
+| **4  Identify “magic numbers” from data, not eyeballing** | The true tier edges (e.g., 99.999 mi not 100) often surface as tiny jitters in CART thresholds.          | For each feature:<br>  \* take the sorted unique values<br>  \* compute first‑difference of predicted outputs<br>  \* sharp jumps ⇒ candidate boundary.<br>Verify boundaries by histogramming outputs on either side.                                                                                                                  |
+| **5  Receipts logic dissection**                          | Your receipt component still explains < 70 % of variance.                                                | Hypotheses to test quickly:<br>  \* **Cap then percentage**: `min(R, K) + α·max(0, R–K)`<br>  \* **Quadratic penalty for low R**: when `R < L`, subtract `β·(L–R)²`.<br>Loop through K, α, L, β grids with coarse step; you’ll see average MAE plunge when you hit the legacy rule.                                                    |
+| **6  Edge‑case regression tests**                         | Prevent back‑sliding as you tweak.                                                                       | Add a `tests/regression.tsv` with every “solved” public case where error is 0. CI fails if any of them drift.                                                                                                                                                                                                                          |
+
+---
+
+### Suggested micro‑strategy for a *zero‑error* public score
+
+```text
+for pass in {1..N}                               # usually N ≤ 4
+│  Fit clean formula (no quirks) to 990/1000 cases
+│  Identify residual > $0.01 set  S
+│  if |S| == 0   ➜  DONE
+│  else
+│     • Look for common pattern (same day count, same cents, etc.)
+│     • If pattern found ➜ encode explicit rule
+│     • If not           ➜ add to override table {hash:expected}
+└── repeat
+```
+
+This **“shrink the diff set” loop** converges quickly because the legacy program is mostly regular, with only a handful of historical hacks.
+
+---
+
+### Sanity checks before touching the private set
+
+1. **Duplicate‑input search**: you ran it—no duplicates. Good clue: the system is deterministic, not randomised.
+2. **Noise‑jitter test**: perturb each input by ±1 % and confirm output monotonicity. If a tiny δ flips the region, you need *strict* ≤ / < ordering identical to the original.
+3. **Cross‑validation**: keep doing 5‑fold; if any fold explodes while others are perfect, that fold hides boundary combinations you’ve overfitted with a quirk rule.
+
+---
+
+### Implementation tips for the final `run.sh`
+
+| Concern                    | Recommendation                                                                                                                                     |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Speed**                  | One `awk` pass or a pure‑bash case block runs the 5 000 private cases in < 0.1 s.                                                                  |
+| **Numerical fidelity**     | Multiply every monetary constant by 100 (cents) or 1000 (mils) at the top; work in integers; divide once at the end.                               |
+| **Maintainability**        | Keep *data* (tier thresholds, rates, override table) in a `.csv` loaded by `awk -F,` so adjusting numbers doesn’t touch code.                      |
+| **Deterministic rounding** | Most COBOL code did `INT(x + 0.5)`. In `bc` that is `scale=0; x + 0.5`. Beware of Bash’s `printf "%.2f"`—it uses bankers‑rounding on some systems. |
+
+---
+
+## Bottom line
+
+You are **on the right track**: clear workflow, data‑driven breakpoint discovery, and a first‑cut formula.
+The missing pieces are:
+
+* nail the exact rounding order,
+* convert heuristics to coefficient values proven by integer least‑squares,
+* and carve out the handful of remaining anomalies into explicit rules or a keyed override.
+
+Do those—in the iterative “shrink the diff” loop above—and your public‑set MAE will collapse to **0.00**. When that happens, the same deterministic rules should extrapolate cleanly to the 5 000 private cases, because the organisers rarely hide completely new phenomena there.
+
+Let me know when you have the next residual dump; I’ll help dissect whatever stubborn cases remain.
