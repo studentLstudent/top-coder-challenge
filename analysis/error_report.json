@@ -1,0 +1,97 @@
+{
+  "total_cases": 1000,
+  "mae": 113.98982999999998,
+  "perfect_matches": 7,
+  "worst_10": [
+    {
+      "index": 683,
+      "days": 8,
+      "miles": 795,
+      "receipts": 1645.99,
+      "expected": 644.69,
+      "predicted": 1622.31,
+      "error": 977.6199999999999
+    },
+    {
+      "index": 519,
+      "days": 14,
+      "miles": 481,
+      "receipts": 939.99,
+      "expected": 877.17,
+      "predicted": 1707.82,
+      "error": 830.65
+    },
+    {
+      "index": 366,
+      "days": 11,
+      "miles": 740,
+      "receipts": 1171.99,
+      "expected": 902.09,
+      "predicted": 1687.42,
+      "error": 785.33
+    },
+    {
+      "index": 369,
+      "days": 4,
+      "miles": 825,
+      "receipts": 874.99,
+      "expected": 784.52,
+      "predicted": 1402.37,
+      "error": 617.8499999999999
+    },
+    {
+      "index": 512,
+      "days": 8,
+      "miles": 1025,
+      "receipts": 1031.33,
+      "expected": 2214.64,
+      "predicted": 1643.66,
+      "error": 570.9799999999998
+    },
+    {
+      "index": 668,
+      "days": 7,
+      "miles": 1033,
+      "receipts": 1013.03,
+      "expected": 2119.83,
+      "predicted": 1603.67,
+      "error": 516.1599999999999
+    },
+    {
+      "index": 326,
+      "days": 7,
+      "miles": 1089,
+      "receipts": 1026.25,
+      "expected": 2132.85,
+      "predicted": 1622.71,
+      "error": 510.1399999999999
+    },
+    {
+      "index": 334,
+      "days": 9,
+      "miles": 1155,
+      "receipts": 1346.4,
+      "expected": 2248.12,
+      "predicted": 1753.04,
+      "error": 495.0799999999999
+    },
+    {
+      "index": 83,
+      "days": 1,
+      "miles": 451,
+      "receipts": 555.49,
+      "expected": 162.18,
+      "predicted": 606.31,
+      "error": 444.12999999999994
+    },
+    {
+      "index": 870,
+      "days": 14,
+      "miles": 1020,
+      "receipts": 1201.75,
+      "expected": 2337.73,
+      "predicted": 1902.55,
+      "error": 435.18000000000006
+    }
+  ]
+}
